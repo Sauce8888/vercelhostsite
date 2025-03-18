@@ -2,18 +2,37 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Will initialize Supabase client only at runtime
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase credentials not available");
+  }
+  
+  return createClient(supabaseUrl, supabaseKey);
+}
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-02-24.acacia", // Use the latest API version
-});
+// Will initialize Stripe only at runtime
+function getStripeClient() {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  
+  if (!stripeKey) {
+    throw new Error("Stripe key not available");
+  }
+  
+  return new Stripe(stripeKey, {
+    apiVersion: "2025-02-24.acacia", // Use the latest API version
+  });
+}
 
 export async function POST(request: Request) {
   try {
+    // Only initialize clients when function is actually called
+    const supabase = getSupabaseClient();
+    const stripe = getStripeClient();
+    
     const body = await request.json();
     const { 
       checkIn, 
